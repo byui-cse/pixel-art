@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -308,7 +309,7 @@
     button.secondary:hover {
       border-color: var(--text);
       color: var(--text);
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     button.success {
@@ -384,13 +385,34 @@
     }
 
     /* Syntax highlighting colors */
-    .code-highlight .keyword { color: #ff79c6; }
-    .code-highlight .function { color: #50fa7b; }
-    .code-highlight .string { color: #f1fa8c; }
-    .code-highlight .number { color: #bd93f9; }
-    .code-highlight .comment { color: #6272a4; font-style: italic; }
-    .code-highlight .operator { color: #ff79c6; }
-    .code-highlight .plain { color: #e6e6e6; }
+    .code-highlight .keyword {
+      color: #ff79c6;
+    }
+
+    .code-highlight .function {
+      color: #50fa7b;
+    }
+
+    .code-highlight .string {
+      color: #f1fa8c;
+    }
+
+    .code-highlight .number {
+      color: #bd93f9;
+    }
+
+    .code-highlight .comment {
+      color: #6272a4;
+      font-style: italic;
+    }
+
+    .code-highlight .operator {
+      color: #ff79c6;
+    }
+
+    .code-highlight .plain {
+      color: #e6e6e6;
+    }
 
     .output {
       margin-top: 0.75rem;
@@ -625,15 +647,18 @@
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <header>
       <h1>Pixel Art Coordinate Challenge</h1>
-      <p class="subtitle">Learn coordinates, arrays, and functions by creating pixel art!</p>
+      <p class="subtitle">The most voted for art wins a prize!</p>
       <button class="share-btn" id="shareBtn" onclick="shareCode()">Share</button>
       <div class="share-toast" id="shareToast">Link copied to clipboard!</div>
     </header>
@@ -678,8 +703,8 @@
             </div>
           </div>
           <div class="code-editor-wrapper">
-          <div class="code-highlight" id="codeHighlight"></div>
-          <textarea class="code-editor" id="codeEditor" placeholder="// Try: fill(0, 0, 'red')
+            <div class="code-highlight" id="codeHighlight"></div>
+            <textarea class="code-editor" id="codeEditor" placeholder="// Try: fill(0, 0, 'red')
 // Or click an example below!" spellcheck="false">// Draw an animated smiley face!
 
 // Eyes
@@ -709,7 +734,7 @@ for (let col = 8; col >= 3; col--) {
 for (let row = 9; row >= 2; row--) {
   fill(row, 2, 'orange'); await sleep(40);
 }</textarea>
-        </div>
+          </div>
           <div class="output" id="output"></div>
 
           <div class="speed-control">
@@ -754,7 +779,7 @@ for (let row = 9; row >= 2; row--) {
 
   <script>
     // LZString compression for shorter URLs
-    const LZString = (function() {
+    const LZString = (function () {
       const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
       const baseReverseDic = {};
 
@@ -771,9 +796,9 @@ for (let row = 9; row >= 2; row--) {
       function _compress(uncompressed, bitsPerChar, getCharFromInt) {
         if (uncompressed == null) return "";
         let i, value, context_dictionary = {}, context_dictionaryToCreate = {},
-            context_c = "", context_wc = "", context_w = "", context_enlargeIn = 2,
-            context_dictSize = 3, context_numBits = 2, context_data = [], context_data_val = 0,
-            context_data_position = 0;
+          context_c = "", context_wc = "", context_w = "", context_enlargeIn = 2,
+          context_dictSize = 3, context_numBits = 2, context_data = [], context_data_val = 0,
+          context_data_position = 0;
 
         for (let ii = 0; ii < uncompressed.length; ii++) {
           context_c = uncompressed.charAt(ii);
@@ -942,8 +967,8 @@ for (let row = 9; row >= 2; row--) {
 
       function _decompress(length, resetValue, getNextValue) {
         let dictionary = [], next, enlargeIn = 4, dictSize = 4, numBits = 3,
-            entry = "", result = [], i, w, bits, resb, maxpower, power, c,
-            data = { val: getNextValue(0), position: resetValue, index: 1 };
+          entry = "", result = [], i, w, bits, resb, maxpower, power, c,
+          data = { val: getNextValue(0), position: resetValue, index: 1 };
 
         for (i = 0; i < 3; i++) dictionary[i] = i;
         bits = 0; maxpower = Math.pow(2, 2); power = 1;
@@ -1009,15 +1034,15 @@ for (let row = 9; row >= 2; row--) {
       }
 
       return {
-        compressToEncodedURIComponent: function(input) {
+        compressToEncodedURIComponent: function (input) {
           if (input == null) return "";
-          return _compress(input, 6, function(a) { return keyStrUriSafe.charAt(a); });
+          return _compress(input, 6, function (a) { return keyStrUriSafe.charAt(a); });
         },
-        decompressFromEncodedURIComponent: function(input) {
+        decompressFromEncodedURIComponent: function (input) {
           if (input == null) return "";
           if (input == "") return null;
           input = input.replace(/ /g, "+");
-          return _decompress(input.length, 32, function(index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
+          return _decompress(input.length, 32, function (index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
         }
       };
     })();
@@ -1201,7 +1226,7 @@ for (let offset = 0; offset < totalWidth; offset++) {
         'Hover over a cell to see coordinates';
     }
 
-// Insert color into editor
+    // Insert color into editor
     function insertColor(color) {
       const editor = document.getElementById('codeEditor');
       const start = editor.selectionStart;
@@ -1432,7 +1457,7 @@ for (let offset = 0; offset < totalWidth; offset++) {
         setTimeout(() => {
           toast.classList.remove('visible');
         }, 2500);
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     function closeShareModal(event) {
@@ -1473,4 +1498,5 @@ for (let offset = 0; offset < totalWidth; offset++) {
     updateHighlight(); // Initial highlight
   </script>
 </body>
+
 </html>
