@@ -54,6 +54,139 @@
       color: var(--text-muted);
     }
 
+    .share-btn {
+      margin-top: 1rem;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.4rem 1.25rem;
+      font-size: 0.875rem;
+    }
+
+    .share-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .share-toast {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--success);
+      color: #111;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      z-index: 1000;
+    }
+
+    .share-toast.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1001;
+      padding: 1rem;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+    }
+
+    .modal-content h2 {
+      color: var(--accent);
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.75rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.75rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+      background: none;
+    }
+
+    .qr-container {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+
+    .qr-container img {
+      display: block;
+      width: 180px;
+      height: 180px;
+    }
+
+    .modal-instruction {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .share-url-container {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .share-url-container input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid var(--grid-line);
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      color: var(--text);
+      font-size: 0.75rem;
+      font-family: monospace;
+      min-width: 0;
+    }
+
+    .share-url-container input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .share-url-container button {
+      flex-shrink: 0;
+    }
+
     .grid-container {
       display: flex;
       flex-direction: column;
@@ -501,7 +634,24 @@
     <header>
       <h1>Pixel Art Coordinate Challenge</h1>
       <p class="subtitle">Learn coordinates, arrays, and functions by creating pixel art!</p>
+      <button class="share-btn" id="shareBtn" onclick="shareCode()">Share</button>
+      <div class="share-toast" id="shareToast">Link copied to clipboard!</div>
     </header>
+
+    <div class="modal-overlay" id="shareModal" onclick="closeShareModal(event)">
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeShareModal()">&times;</button>
+        <h2>Share Your Creation</h2>
+        <div class="qr-container">
+          <img id="qrCode" src="" alt="QR Code">
+        </div>
+        <p class="modal-instruction">Scan the QR code or copy the link below:</p>
+        <div class="share-url-container">
+          <input type="text" id="shareUrl" readonly>
+          <button onclick="copyShareUrl()">Copy</button>
+        </div>
+      </div>
+    </div>
 
     <div class="main-content">
       <div class="grid-container">
@@ -603,6 +753,275 @@ for (let row = 9; row >= 2; row--) {
   </div>
 
   <script>
+    // LZString compression for shorter URLs
+    const LZString = (function() {
+      const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+      const baseReverseDic = {};
+
+      function getBaseValue(alphabet, character) {
+        if (!baseReverseDic[alphabet]) {
+          baseReverseDic[alphabet] = {};
+          for (let i = 0; i < alphabet.length; i++) {
+            baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+          }
+        }
+        return baseReverseDic[alphabet][character];
+      }
+
+      function _compress(uncompressed, bitsPerChar, getCharFromInt) {
+        if (uncompressed == null) return "";
+        let i, value, context_dictionary = {}, context_dictionaryToCreate = {},
+            context_c = "", context_wc = "", context_w = "", context_enlargeIn = 2,
+            context_dictSize = 3, context_numBits = 2, context_data = [], context_data_val = 0,
+            context_data_position = 0;
+
+        for (let ii = 0; ii < uncompressed.length; ii++) {
+          context_c = uncompressed.charAt(ii);
+          if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+            context_dictionary[context_c] = context_dictSize++;
+            context_dictionaryToCreate[context_c] = true;
+          }
+          context_wc = context_w + context_c;
+          if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+            context_w = context_wc;
+          } else {
+            if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+              if (context_w.charCodeAt(0) < 256) {
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1);
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else { context_data_position++; }
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i < 8; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else { context_data_position++; }
+                  value = value >> 1;
+                }
+              } else {
+                value = 1;
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1) | value;
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else { context_data_position++; }
+                  value = 0;
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i < 16; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else { context_data_position++; }
+                  value = value >> 1;
+                }
+              }
+              context_enlargeIn--;
+              if (context_enlargeIn == 0) {
+                context_enlargeIn = Math.pow(2, context_numBits);
+                context_numBits++;
+              }
+              delete context_dictionaryToCreate[context_w];
+            } else {
+              value = context_dictionary[context_w];
+              for (i = 0; i < context_numBits; i++) {
+                context_data_val = (context_data_val << 1) | (value & 1);
+                if (context_data_position == bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else { context_data_position++; }
+                value = value >> 1;
+              }
+            }
+            context_enlargeIn--;
+            if (context_enlargeIn == 0) {
+              context_enlargeIn = Math.pow(2, context_numBits);
+              context_numBits++;
+            }
+            context_dictionary[context_wc] = context_dictSize++;
+            context_w = String(context_c);
+          }
+        }
+        if (context_w !== "") {
+          if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+            if (context_w.charCodeAt(0) < 256) {
+              for (i = 0; i < context_numBits; i++) {
+                context_data_val = (context_data_val << 1);
+                if (context_data_position == bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else { context_data_position++; }
+              }
+              value = context_w.charCodeAt(0);
+              for (i = 0; i < 8; i++) {
+                context_data_val = (context_data_val << 1) | (value & 1);
+                if (context_data_position == bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else { context_data_position++; }
+                value = value >> 1;
+              }
+            } else {
+              value = 1;
+              for (i = 0; i < context_numBits; i++) {
+                context_data_val = (context_data_val << 1) | value;
+                if (context_data_position == bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else { context_data_position++; }
+                value = 0;
+              }
+              value = context_w.charCodeAt(0);
+              for (i = 0; i < 16; i++) {
+                context_data_val = (context_data_val << 1) | (value & 1);
+                if (context_data_position == bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else { context_data_position++; }
+                value = value >> 1;
+              }
+            }
+            context_enlargeIn--;
+            if (context_enlargeIn == 0) {
+              context_enlargeIn = Math.pow(2, context_numBits);
+              context_numBits++;
+            }
+            delete context_dictionaryToCreate[context_w];
+          } else {
+            value = context_dictionary[context_w];
+            for (i = 0; i < context_numBits; i++) {
+              context_data_val = (context_data_val << 1) | (value & 1);
+              if (context_data_position == bitsPerChar - 1) {
+                context_data_position = 0;
+                context_data.push(getCharFromInt(context_data_val));
+                context_data_val = 0;
+              } else { context_data_position++; }
+              value = value >> 1;
+            }
+          }
+          context_enlargeIn--;
+          if (context_enlargeIn == 0) {
+            context_numBits++;
+          }
+        }
+        value = 2;
+        for (i = 0; i < context_numBits; i++) {
+          context_data_val = (context_data_val << 1) | (value & 1);
+          if (context_data_position == bitsPerChar - 1) {
+            context_data_position = 0;
+            context_data.push(getCharFromInt(context_data_val));
+            context_data_val = 0;
+          } else { context_data_position++; }
+          value = value >> 1;
+        }
+        while (true) {
+          context_data_val = (context_data_val << 1);
+          if (context_data_position == bitsPerChar - 1) {
+            context_data.push(getCharFromInt(context_data_val));
+            break;
+          } else context_data_position++;
+        }
+        return context_data.join('');
+      }
+
+      function _decompress(length, resetValue, getNextValue) {
+        let dictionary = [], next, enlargeIn = 4, dictSize = 4, numBits = 3,
+            entry = "", result = [], i, w, bits, resb, maxpower, power, c,
+            data = { val: getNextValue(0), position: resetValue, index: 1 };
+
+        for (i = 0; i < 3; i++) dictionary[i] = i;
+        bits = 0; maxpower = Math.pow(2, 2); power = 1;
+        while (power != maxpower) {
+          resb = data.val & data.position;
+          data.position >>= 1;
+          if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+          bits |= (resb > 0 ? 1 : 0) * power;
+          power <<= 1;
+        }
+        switch (next = bits) {
+          case 0: bits = 0; maxpower = Math.pow(2, 8); power = 1;
+            while (power != maxpower) {
+              resb = data.val & data.position; data.position >>= 1;
+              if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+              bits |= (resb > 0 ? 1 : 0) * power; power <<= 1;
+            }
+            c = String.fromCharCode(bits); break;
+          case 1: bits = 0; maxpower = Math.pow(2, 16); power = 1;
+            while (power != maxpower) {
+              resb = data.val & data.position; data.position >>= 1;
+              if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+              bits |= (resb > 0 ? 1 : 0) * power; power <<= 1;
+            }
+            c = String.fromCharCode(bits); break;
+          case 2: return "";
+        }
+        dictionary[3] = c; w = c; result.push(c);
+        while (true) {
+          if (data.index > length) return "";
+          bits = 0; maxpower = Math.pow(2, numBits); power = 1;
+          while (power != maxpower) {
+            resb = data.val & data.position; data.position >>= 1;
+            if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+            bits |= (resb > 0 ? 1 : 0) * power; power <<= 1;
+          }
+          switch (c = bits) {
+            case 0: bits = 0; maxpower = Math.pow(2, 8); power = 1;
+              while (power != maxpower) {
+                resb = data.val & data.position; data.position >>= 1;
+                if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                bits |= (resb > 0 ? 1 : 0) * power; power <<= 1;
+              }
+              dictionary[dictSize++] = String.fromCharCode(bits); c = dictSize - 1; enlargeIn--; break;
+            case 1: bits = 0; maxpower = Math.pow(2, 16); power = 1;
+              while (power != maxpower) {
+                resb = data.val & data.position; data.position >>= 1;
+                if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                bits |= (resb > 0 ? 1 : 0) * power; power <<= 1;
+              }
+              dictionary[dictSize++] = String.fromCharCode(bits); c = dictSize - 1; enlargeIn--; break;
+            case 2: return result.join('');
+          }
+          if (enlargeIn == 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+          if (dictionary[c]) { entry = dictionary[c]; }
+          else { if (c === dictSize) { entry = w + w.charAt(0); } else { return null; } }
+          result.push(entry);
+          dictionary[dictSize++] = w + entry.charAt(0);
+          enlargeIn--;
+          if (enlargeIn == 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+          w = entry;
+        }
+      }
+
+      return {
+        compressToEncodedURIComponent: function(input) {
+          if (input == null) return "";
+          return _compress(input, 6, function(a) { return keyStrUriSafe.charAt(a); });
+        },
+        decompressFromEncodedURIComponent: function(input) {
+          if (input == null) return "";
+          if (input == "") return null;
+          input = input.replace(/ /g, "+");
+          return _decompress(input.length, 32, function(index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
+        }
+      };
+    })();
+
     // Grid state
     const GRID_SIZE = 12;
     let cells = [];
@@ -680,21 +1099,31 @@ for (const [row, col] of heart) {
 }`
       },
       {
-        name: 'Matrix Rain',
-        code: `// Matrix-style rain animation
-for (let frame = 0; frame < 20; frame++) {
+        name: 'Scrolling Hello',
+        code: `// "HELLO" scrolls across the screen
+const letters = {
+  H: [[0,0],[1,0],[2,0],[3,0],[4,0],[2,1],[0,2],[1,2],[2,2],[3,2],[4,2]],
+  E: [[0,0],[1,0],[2,0],[3,0],[4,0],[0,1],[2,1],[4,1],[0,2],[4,2]],
+  L: [[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[4,2]],
+  O: [[1,0],[2,0],[3,0],[0,1],[4,1],[1,2],[2,2],[3,2]]
+};
+const word = ['H','E','L','L','O'];
+const spacing = 4;
+const totalWidth = word.length * spacing + 12;
+
+for (let offset = 0; offset < totalWidth; offset++) {
   clear();
-  for (let col = 0; col < 12; col++) {
-    const startRow = (frame + col * 3) % 15;
-    for (let i = 0; i < 4; i++) {
-      const row = startRow - i;
-      if (row >= 0 && row < 12) {
-        const shade = i === 0 ? 'lime' : 'green';
-        fill(row, col, shade);
+  let x = 12 - offset;
+  for (const char of word) {
+    for (const [row, col] of letters[char]) {
+      const drawCol = x + col;
+      if (drawCol >= 0 && drawCol < 12) {
+        fill(row + 4, drawCol, 'cyan');
       }
     }
+    x += spacing;
   }
-  await sleep(100);
+  await sleep(120);
 }`
       }
     ];
@@ -786,6 +1215,7 @@ for (let frame = 0; frame < 20; frame++) {
     // Load example code
     function loadExample(code) {
       document.getElementById('codeEditor').value = code;
+      updateHighlight();
       clearGrid();
     }
 
@@ -966,10 +1396,80 @@ for (let frame = 0; frame < 20; frame++) {
     document.getElementById('codeEditor').addEventListener('scroll', syncScroll);
     document.getElementById('codeEditor').addEventListener('input', updateHighlight);
 
+    // Share functionality
+    function encodeCode(code) {
+      return LZString.compressToEncodedURIComponent(code);
+    }
+
+    function decodeCode(encoded) {
+      try {
+        return LZString.decompressFromEncodedURIComponent(encoded);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function shareCode() {
+      const code = document.getElementById('codeEditor').value;
+      const encoded = encodeCode(code);
+      const url = new URL(window.location.href);
+      url.search = '';
+      url.searchParams.set('code', encoded);
+      const shareUrl = url.toString();
+
+      // Generate QR code using API
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
+      document.getElementById('qrCode').src = qrUrl;
+      document.getElementById('shareUrl').value = shareUrl;
+
+      // Show modal
+      document.getElementById('shareModal').classList.add('visible');
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        const toast = document.getElementById('shareToast');
+        toast.classList.add('visible');
+        setTimeout(() => {
+          toast.classList.remove('visible');
+        }, 2500);
+      }).catch(() => {});
+    }
+
+    function closeShareModal(event) {
+      if (!event || event.target === event.currentTarget) {
+        document.getElementById('shareModal').classList.remove('visible');
+      }
+    }
+
+    function copyShareUrl() {
+      const input = document.getElementById('shareUrl');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        const toast = document.getElementById('shareToast');
+        toast.classList.add('visible');
+        setTimeout(() => {
+          toast.classList.remove('visible');
+        }, 2500);
+      });
+    }
+
+    function loadSharedCode() {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('code');
+      if (encoded) {
+        const code = decodeCode(encoded);
+        if (code) {
+          document.getElementById('codeEditor').value = code;
+          updateHighlight();
+        }
+      }
+    }
+
     // Initialize everything
     initGrid();
     initColorPalette();
     initExamples();
+    loadSharedCode(); // Check for shared code in URL
     updateHighlight(); // Initial highlight
   </script>
 </body>
