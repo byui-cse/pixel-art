@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Art Coordinate Challenge</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --grid-size: min(90vw, 400px);
+      --cell-size: calc(var(--grid-size) / 12);
+      --bg-dark: #1a1a2e;
+      --bg-card: #16213e;
+      --accent: #e94560;
+      --accent-hover: #ff6b6b;
+      --text: #eee;
+      --text-muted: #aaa;
+      --success: #4ecca3;
+      --grid-line: #2a2a4a;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1rem;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .grid-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid-wrapper {
+      position: relative;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, var(--cell-size));
+      grid-template-rows: repeat(12, var(--cell-size));
+      background: #222;
+      border: 2px solid var(--accent);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      background: #111;
+      border: 1px solid var(--grid-line);
+      transition: background-color 0.15s ease;
+    }
+
+
+    .axis-labels {
+      position: absolute;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .row-labels {
+      left: -1.5rem;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .col-labels {
+      top: -1.25rem;
+      left: 0;
+      display: flex;
+    }
+
+    .axis-label {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .row-labels .axis-label {
+      width: 1.5rem;
+    }
+
+    .col-labels .axis-label {
+      height: 1.25rem;
+    }
+
+    .editor-section {
+      background: var(--bg-card);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .editor-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--text-muted);
+      color: var(--text-muted);
+    }
+
+    button.secondary:hover {
+      border-color: var(--text);
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+    }
+
+    button.success {
+      background: var(--success);
+    }
+
+    button.success:hover {
+      background: #5fe3b3;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .code-editor-wrapper {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      background: #0d1117;
+      border: 1px solid var(--grid-line);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .code-editor-wrapper:focus-within {
+      border-color: var(--accent);
+    }
+
+    .code-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0.75rem;
+      margin: 0;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow: auto;
+      pointer-events: none;
+      color: #e6e6e6;
+    }
+
+    .code-editor {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      padding: 0.75rem;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.875rem;
+      color: transparent;
+      caret-color: white;
+      resize: none;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .code-editor:focus {
+      outline: none;
+    }
+
+    .code-editor::selection {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Syntax highlighting colors */
+    .code-highlight .keyword { color: #ff79c6; }
+    .code-highlight .function { color: #50fa7b; }
+    .code-highlight .string { color: #f1fa8c; }
+    .code-highlight .number { color: #bd93f9; }
+    .code-highlight .comment { color: #6272a4; font-style: italic; }
+    .code-highlight .operator { color: #ff79c6; }
+    .code-highlight .plain { color: #e6e6e6; }
+
+    .output {
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: #0d1117;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      max-height: 100px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .output.visible {
+      display: block;
+    }
+
+    .output.error {
+      color: #ff6b6b;
+      border-left: 3px solid #ff6b6b;
+    }
+
+    .output.success {
+      color: var(--success);
+      border-left: 3px solid var(--success);
+    }
+
+    .help-section {
+      background: var(--bg-card);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .help-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .help-title::after {
+      content: '\25BC';
+      font-size: 0.6rem;
+      transition: transform 0.2s;
+    }
+
+    .help-section.collapsed .help-title::after {
+      transform: rotate(-90deg);
+    }
+
+    .help-content {
+      display: block;
+    }
+
+    .help-section.collapsed .help-content {
+      display: none;
+    }
+
+    .function-ref {
+      margin-bottom: 1rem;
+    }
+
+    .function-ref h4 {
+      font-size: 0.875rem;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+      font-family: monospace;
+    }
+
+    .function-ref p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    code {
+      background: #0d1117;
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.8rem;
+    }
+
+    .examples {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .example-btn {
+      background: rgba(233, 69, 96, 0.1);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .example-btn:hover {
+      background: rgba(233, 69, 96, 0.2);
+    }
+
+    .example-btn .example-name {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.125rem;
+    }
+
+    .example-btn .example-preview {
+      font-family: monospace;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    .color-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-top: 0.5rem;
+    }
+
+    .color-swatch {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 3px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.1s, border-color 0.1s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.15);
+      border-color: white;
+    }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .speed-control input {
+      flex: 1;
+      max-width: 150px;
+    }
+
+    .coord-display {
+      text-align: center;
+      margin-top: 0.5rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      height: 1.25rem;
+    }
+
+    /* Tablet and up */
+    @media (min-width: 600px) {
+      :root {
+        --grid-size: 420px;
+      }
+
+      body {
+        padding: 2rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+      }
+
+      .code-editor-wrapper {
+        height: 280px;
+      }
+
+      .code-editor,
+      .code-highlight {
+        font-size: 1rem;
+      }
+
+      .examples {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .editor-area {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+    }
+
+    /* Desktop */
+    @media (min-width: 900px) {
+      :root {
+        --grid-size: 480px;
+      }
+
+      .code-editor-wrapper {
+        height: 320px;
+      }
+
+      .editor-area {
+        max-width: 520px;
+      }
+    }
+
+    /* Animation indicator */
+    .running-indicator {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--success);
+    }
+
+    .running-indicator.visible {
+      display: flex;
+    }
+
+    .spinner {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--success);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Pixel Art Coordinate Challenge</h1>
+      <p class="subtitle">Learn coordinates, arrays, and functions by creating pixel art!</p>
+    </header>
+
+    <div class="main-content">
+      <div class="grid-container">
+        <div class="grid-wrapper">
+          <div class="axis-labels row-labels" id="rowLabels"></div>
+          <div class="axis-labels col-labels" id="colLabels"></div>
+          <div class="grid" id="grid"></div>
+        </div>
+        <div class="coord-display" id="coordDisplay">Hover over a cell to see coordinates</div>
+      </div>
+
+      <div class="editor-area">
+        <div class="editor-section">
+          <div class="editor-header">
+            <span class="editor-title">Your Code</span>
+            <div class="running-indicator" id="runningIndicator">
+              <div class="spinner"></div>
+              <span>Running...</span>
+            </div>
+            <div class="btn-group">
+              <button class="secondary" onclick="clearGrid()">Clear Grid</button>
+              <button class="secondary" id="stopBtn" onclick="stopAnimation()" disabled>Stop</button>
+              <button class="success" id="runBtn" onclick="runCode()">Run</button>
+            </div>
+          </div>
+          <div class="code-editor-wrapper">
+          <div class="code-highlight" id="codeHighlight"></div>
+          <textarea class="code-editor" id="codeEditor" placeholder="// Try: fill(0, 0, 'red')
+// Or click an example below!" spellcheck="false">// Draw an animated smiley face!
+
+// Eyes
+fill(3, 3, 'yellow'); await sleep(80);
+fill(3, 8, 'yellow'); await sleep(80);
+fill(4, 3, 'yellow'); await sleep(80);
+fill(4, 8, 'yellow'); await sleep(80);
+
+// Mouth
+fill(7, 3, 'yellow'); await sleep(80);
+fill(8, 4, 'yellow'); await sleep(80);
+fill(8, 5, 'yellow'); await sleep(80);
+fill(8, 6, 'yellow'); await sleep(80);
+fill(8, 7, 'yellow'); await sleep(80);
+fill(7, 8, 'yellow'); await sleep(80);
+
+// Face outline
+for (let col = 3; col <= 8; col++) {
+  fill(1, col, 'orange'); await sleep(40);
+}
+for (let row = 2; row <= 9; row++) {
+  fill(row, 9, 'orange'); await sleep(40);
+}
+for (let col = 8; col >= 3; col--) {
+  fill(10, col, 'orange'); await sleep(40);
+}
+for (let row = 9; row >= 2; row--) {
+  fill(row, 2, 'orange'); await sleep(40);
+}</textarea>
+        </div>
+          <div class="output" id="output"></div>
+
+          <div class="speed-control">
+            <label for="speedSlider">Animation Speed:</label>
+            <input type="range" id="speedSlider" min="10" max="500" value="100">
+            <span id="speedValue">100ms</span>
+          </div>
+        </div>
+
+        <div class="help-section" id="helpSection">
+          <div class="help-title" onclick="toggleHelp()">Functions & Examples</div>
+          <div class="help-content">
+            <div class="function-ref">
+              <h4>fill(row, col, color)</h4>
+              <p>Colors a cell at the given row and column. Rows and columns start at 0.</p>
+              <p>Example: <code>fill(0, 0, 'red')</code> colors the top-left cell red.</p>
+            </div>
+
+            <div class="function-ref">
+              <h4>clear()</h4>
+              <p>Clears all cells back to black. Useful for animations!</p>
+            </div>
+
+            <div class="function-ref">
+              <h4>await sleep(ms)</h4>
+              <p>Pauses execution for animations. Use with loops!</p>
+              <p>Example: <code>await sleep(100)</code> waits 100 milliseconds.</p>
+            </div>
+
+            <div class="function-ref">
+              <h4>Available Colors</h4>
+              <div class="color-palette" id="colorPalette"></div>
+            </div>
+
+            <h4 style="margin: 1rem 0 0.5rem; font-size: 0.875rem;">Try These Examples:</h4>
+            <div class="examples" id="examples"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Grid state
+    const GRID_SIZE = 12;
+    let cells = [];
+    let isRunning = false;
+    let shouldStop = false;
+
+    // Available colors
+    const colors = [
+      'red', 'orange', 'yellow', 'lime', 'green', 'cyan',
+      'blue', 'purple', 'magenta', 'pink', 'white', 'gray'
+    ];
+
+    // Example code snippets
+    const examples = [
+      {
+        name: 'Checkerboard',
+        code: `// Checkerboard pattern
+for (let row = 0; row < 12; row++) {
+  for (let col = 0; col < 12; col++) {
+    if ((row + col) % 2 === 0) {
+      fill(row, col, 'red');
+    } else {
+      fill(row, col, 'white');
+    }
+  }
+}`
+      },
+      {
+        name: 'Rainbow Rows',
+        code: `// Rainbow rows with animation
+const colors = ['red', 'orange', 'yellow', 'lime', 'cyan', 'blue'];
+for (let row = 0; row < 12; row++) {
+  for (let col = 0; col < 12; col++) {
+    fill(row, col, colors[row % 6]);
+    await sleep(20);
+  }
+}`
+      },
+      {
+        name: 'Growing Square',
+        code: `// Animated growing square
+for (let size = 1; size <= 12; size++) {
+  clear();
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      fill(row, col, 'cyan');
+    }
+  }
+  await sleep(150);
+}`
+      },
+      {
+        name: 'Diagonal Line',
+        code: `// Draw a diagonal line
+for (let i = 0; i < 12; i++) {
+  fill(i, i, 'lime');
+  await sleep(80);
+}`
+      },
+      {
+        name: 'Heart',
+        code: `// Draw a heart
+const heart = [
+  [1,3], [1,4], [1,7], [1,8],
+  [2,2], [2,5], [2,6], [2,9],
+  [3,1], [3,10],
+  [4,1], [4,10],
+  [5,2], [5,9],
+  [6,3], [6,8],
+  [7,4], [7,7],
+  [8,5], [8,6]
+];
+for (const [row, col] of heart) {
+  fill(row, col, 'red');
+}`
+      },
+      {
+        name: 'Matrix Rain',
+        code: `// Matrix-style rain animation
+for (let frame = 0; frame < 20; frame++) {
+  clear();
+  for (let col = 0; col < 12; col++) {
+    const startRow = (frame + col * 3) % 15;
+    for (let i = 0; i < 4; i++) {
+      const row = startRow - i;
+      if (row >= 0 && row < 12) {
+        const shade = i === 0 ? 'lime' : 'green';
+        fill(row, col, shade);
+      }
+    }
+  }
+  await sleep(100);
+}`
+      }
+    ];
+
+    // Initialize the grid
+    function initGrid() {
+      const grid = document.getElementById('grid');
+      const rowLabels = document.getElementById('rowLabels');
+      const colLabels = document.getElementById('colLabels');
+
+      // Create cells
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+          cell.addEventListener('mouseenter', () => showCoords(row, col));
+          cell.addEventListener('mouseleave', hideCoords);
+          grid.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+
+      // Create axis labels
+      for (let i = 0; i < GRID_SIZE; i++) {
+        const rowLabel = document.createElement('div');
+        rowLabel.className = 'axis-label';
+        rowLabel.textContent = i;
+        rowLabels.appendChild(rowLabel);
+
+        const colLabel = document.createElement('div');
+        colLabel.className = 'axis-label';
+        colLabel.textContent = i;
+        colLabels.appendChild(colLabel);
+      }
+    }
+
+    // Initialize color palette
+    function initColorPalette() {
+      const palette = document.getElementById('colorPalette');
+      colors.forEach(color => {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.background = color;
+        swatch.title = color;
+        swatch.addEventListener('click', () => insertColor(color));
+        palette.appendChild(swatch);
+      });
+    }
+
+    // Initialize examples
+    function initExamples() {
+      const container = document.getElementById('examples');
+      examples.forEach(example => {
+        const btn = document.createElement('button');
+        btn.className = 'example-btn';
+        btn.innerHTML = `
+          <span class="example-name">${example.name}</span>
+          <span class="example-preview">${example.code.split('\n')[0]}</span>
+        `;
+        btn.addEventListener('click', () => loadExample(example.code));
+        container.appendChild(btn);
+      });
+    }
+
+    // Show coordinates on hover
+    function showCoords(row, col) {
+      document.getElementById('coordDisplay').textContent =
+        `fill(${row}, ${col}, 'color')`;
+    }
+
+    function hideCoords() {
+      document.getElementById('coordDisplay').textContent =
+        'Hover over a cell to see coordinates';
+    }
+
+// Insert color into editor
+    function insertColor(color) {
+      const editor = document.getElementById('codeEditor');
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const text = editor.value;
+      editor.value = text.substring(0, start) + `'${color}'` + text.substring(end);
+      editor.focus();
+      editor.selectionStart = editor.selectionEnd = start + color.length + 2;
+    }
+
+    // Load example code
+    function loadExample(code) {
+      document.getElementById('codeEditor').value = code;
+      clearGrid();
+    }
+
+    // Toggle help section
+    function toggleHelp() {
+      document.getElementById('helpSection').classList.toggle('collapsed');
+    }
+
+    // Speed slider
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      document.getElementById('speedValue').textContent = e.target.value + 'ms';
+    });
+
+    // Grid functions available to user code
+    function fill(row, col, color) {
+      if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        throw new Error(`Invalid coordinates: (${row}, ${col}). Must be 0-11.`);
+      }
+      const index = row * GRID_SIZE + col;
+      cells[index].style.backgroundColor = color;
+    }
+
+    function clearGrid() {
+      cells.forEach(cell => {
+        cell.style.backgroundColor = '#111';
+      });
+    }
+
+    // Alias for user code
+    function clear() {
+      clearGrid();
+    }
+
+    function sleep(ms) {
+      const speed = parseInt(document.getElementById('speedSlider').value);
+      return new Promise((resolve, reject) => {
+        if (shouldStop) {
+          reject(new Error('Stopped'));
+          return;
+        }
+        setTimeout(() => {
+          if (shouldStop) {
+            reject(new Error('Stopped'));
+          } else {
+            resolve();
+          }
+        }, ms || speed);
+      });
+    }
+
+    // Stop animation
+    function stopAnimation() {
+      shouldStop = true;
+    }
+
+    // Run user code
+    async function runCode() {
+      if (isRunning) return;
+
+      const code = document.getElementById('codeEditor').value;
+      const output = document.getElementById('output');
+      const runBtn = document.getElementById('runBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const indicator = document.getElementById('runningIndicator');
+
+      isRunning = true;
+      shouldStop = false;
+      runBtn.disabled = true;
+      stopBtn.disabled = false;
+      indicator.classList.add('visible');
+      output.className = 'output';
+      output.textContent = '';
+
+      try {
+        // Wrap code in async function to support await
+        const asyncCode = `(async () => { ${code} })()`;
+        await eval(asyncCode);
+
+        if (!shouldStop) {
+          output.textContent = 'Code executed successfully!';
+          output.className = 'output visible success';
+        }
+      } catch (error) {
+        if (error.message !== 'Stopped') {
+          output.textContent = `Error: ${error.message}`;
+          output.className = 'output visible error';
+        }
+      } finally {
+        isRunning = false;
+        shouldStop = false;
+        runBtn.disabled = false;
+        stopBtn.disabled = true;
+        indicator.classList.remove('visible');
+      }
+    }
+
+    // Keyboard shortcut to run code
+    document.getElementById('codeEditor').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runCode();
+      }
+    });
+
+    // Syntax highlighting
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function highlightCode(code) {
+      if (!code) return '';
+
+      // Split into tokens and highlight each
+      const lines = code.split('\n');
+      return lines.map(line => {
+        // Check if line is a comment
+        const commentMatch = line.match(/^(\s*)(\/\/.*)$/);
+        if (commentMatch) {
+          return escapeHtml(commentMatch[1]) + '<span class="comment">' + escapeHtml(commentMatch[2]) + '</span>';
+        }
+
+        // Process inline comments
+        const inlineCommentIndex = line.indexOf('//');
+        let mainPart = line;
+        let commentPart = '';
+        if (inlineCommentIndex !== -1) {
+          mainPart = line.substring(0, inlineCommentIndex);
+          commentPart = '<span class="comment">' + escapeHtml(line.substring(inlineCommentIndex)) + '</span>';
+        }
+
+        // Tokenize and highlight
+        let result = mainPart
+          // Strings first (to protect their contents)
+          .replace(/('(?:[^'\\]|\\.)*')/g, '\x00STR\x00$1\x00/STR\x00')
+          .replace(/("(?:[^"\\]|\\.)*")/g, '\x00STR\x00$1\x00/STR\x00');
+
+        // Escape HTML in non-string parts
+        const parts = result.split(/(\x00STR\x00.*?\x00\/STR\x00)/g);
+        result = parts.map(part => {
+          if (part.startsWith('\x00STR\x00')) {
+            const str = part.slice(5, -6);
+            return '<span class="string">' + escapeHtml(str) + '</span>';
+          }
+          // Escape and highlight non-string parts
+          let escaped = escapeHtml(part);
+          // Keywords
+          escaped = escaped.replace(/\b(const|let|var|for|while|if|else|function|return|await|async|of|in)\b/g,
+            '<span class="keyword">$1</span>');
+          // Functions
+          escaped = escaped.replace(/\b(fill|clear|sleep)\b(?=\s*\()/g,
+            '<span class="function">$1</span>');
+          // Numbers
+          escaped = escaped.replace(/\b(\d+)\b/g, '<span class="number">$1</span>');
+          return escaped;
+        }).join('');
+
+        return result + commentPart;
+      }).join('\n');
+    }
+
+    function updateHighlight() {
+      const editor = document.getElementById('codeEditor');
+      const highlight = document.getElementById('codeHighlight');
+      const code = editor.value;
+      highlight.innerHTML = highlightCode(code) + '\n';
+    }
+
+    // Sync scroll position
+    function syncScroll() {
+      const editor = document.getElementById('codeEditor');
+      const highlight = document.getElementById('codeHighlight');
+      highlight.scrollTop = editor.scrollTop;
+      highlight.scrollLeft = editor.scrollLeft;
+    }
+
+    document.getElementById('codeEditor').addEventListener('scroll', syncScroll);
+    document.getElementById('codeEditor').addEventListener('input', updateHighlight);
+
+    // Initialize everything
+    initGrid();
+    initColorPalette();
+    initExamples();
+    updateHighlight(); // Initial highlight
+  </script>
+</body>
+</html>
