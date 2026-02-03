@@ -1,4 +1,4 @@
-# Pixel Art Coordinate Challenge 
+# Pixel Art Coordinate Challenge
 
 A browser-based pixel art editor that teaches programming concepts through an interactive 12x12 grid canvas. Write JavaScript code to programmatically create pixel art with real-time visual feedback.
 
